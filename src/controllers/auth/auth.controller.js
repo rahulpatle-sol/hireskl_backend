@@ -221,16 +221,16 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     resetPasswordExpiry: new Date(Date.now() + 60 * 60 * 1000),
   });
 
-try {
-  await sendPasswordResetEmail(user.email, user.name, resetToken);
-} catch (err) {
-  console.error("📧 ACTUAL EMAIL ERROR:", err); // ← yeh add karo
-  await User.findByIdAndUpdate(user._id, {
-    resetPasswordToken: undefined,
-    resetPasswordExpiry: undefined,
-  });
-  return next(new ApiError(500, `Email error: ${err.message}`)); // ← actual message
-}
+  try {
+    await sendPasswordResetEmail(user.email, user.name, resetToken);
+  } catch (err) {
+    console.error("📧 ACTUAL EMAIL ERROR:", err);
+    await User.findByIdAndUpdate(user._id, {
+      resetPasswordToken: undefined,
+      resetPasswordExpiry: undefined,
+    });
+    return next(new ApiError(500, `Email error: ${err.message}`));
+  }
 
   res.json(new ApiResponse(200, null, "Password reset email sent"));
 });
@@ -248,6 +248,12 @@ const resetPassword = asyncHandler(async (req, res, next) => {
 
   // Use save here because bcrypt pre-save hook needs to hash the new password
   user.password = req.body.password;
+  
+  // If this was a Google user, update authProvider to "local" so they can login with password
+  if (user.authProvider === "google") {
+    user.authProvider = "local";
+  }
+
   user.resetPasswordToken = undefined;
   user.resetPasswordExpiry = undefined;
   await user.save();
