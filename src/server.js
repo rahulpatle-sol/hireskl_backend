@@ -1,4 +1,6 @@
 require("dotenv").config();
+app.set('trust proxy', 1); 
+// Ye line sabse upar add karo
 const http = require("http");
 const { Server } = require("socket.io");
 const app = require("./app");
