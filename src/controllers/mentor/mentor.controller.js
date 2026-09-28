@@ -41,11 +41,19 @@ const updateMentorProfile = asyncHandler(async (req, res, next) => {
 // @desc    List all verified mentors (public)
 // @route   GET /api/v1/mentor
 // @access  Public
+const MENTOR_SORTS = {
+  rating: { avgRating: -1, totalReviews: -1 },
+  sessions: { totalSessions: -1 },
+  price: { hourlyRate: 1 },
+  recent: { createdAt: -1 },
+};
+
 const getAllMentors = asyncHandler(async (req, res) => {
-  const { domain, skill, search, page = 1, limit = 12 } = req.query;
+  const { domain, skill, verified, sort = "rating", search, page = 1, limit = 12 } = req.query;
   const filter = {};
   if (domain) filter.domains = domain;
   if (skill) filter.expertise = skill;
+  if (verified === "true") filter.isVerified = true;
 
   // If search query, find matching User IDs first
   if (search && search.trim()) {
@@ -60,10 +68,10 @@ const getAllMentors = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const [mentors, total] = await Promise.all([
     MentorProfile.find(filter)
-      .populate("user", "name avatar")
-      .populate("expertise", "name")
-      .populate("domains", "name")
-      .sort("-avgRating")
+      .populate("user", "name avatar isVerified")
+      .populate("expertise", "name slug")
+      .populate("domains", "name slug")
+      .sort(MENTOR_SORTS[sort] || MENTOR_SORTS.rating)
       .skip(skip)
       .limit(Number(limit)),
     MentorProfile.countDocuments(filter),

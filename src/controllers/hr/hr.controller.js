@@ -9,6 +9,38 @@ const { Domain } = require("../../models/Domain.model");
 
 const PLAN_LIMITS = { free: 10, pro: 25, enterprise: Infinity };
 
+const getAllCompanies = asyncHandler(async (req, res) => {
+  const { search, size, plan, sort = "featured", page = 1, limit = 12 } = req.query;
+  const filter = {};
+
+  if (search && search.trim()) {
+    const rx = { $regex: search.trim(), $options: "i" };
+    filter.$or = [{ companyName: rx }, { industry: rx }];
+  }
+  if (size && size !== "All") filter.companySize = size;
+  if (plan && plan !== "All") filter.plan = plan;
+
+  const COMPANY_SORTS = {
+    featured: { isPremium: -1, totalHires: -1, createdAt: -1 },
+    hires: { totalHires: -1 },
+    jobs: { totalJobsPosted: -1 },
+    recent: { createdAt: -1 },
+  };
+
+  const skip = (page - 1) * limit;
+  const [companies, total] = await Promise.all([
+    HRProfile.find(filter)
+      .populate("user", "name avatar")
+      .select("-experience -education -certifications")
+      .sort(COMPANY_SORTS[sort] || COMPANY_SORTS.featured)
+      .skip(skip)
+      .limit(Number(limit)),
+    HRProfile.countDocuments(filter),
+  ]);
+
+  res.json(new ApiResponse(200, { companies, total, page: Number(page), pages: Math.ceil(total / limit) }));
+});
+
 const getHRProfile = asyncHandler(async (req, res, next) => {
   const profile = await HRProfile.findOne({ user: req.user._id }).populate("user", "name email avatar");
   if (!profile) return next(new ApiError(404, "HR profile not found"));
@@ -310,6 +342,7 @@ const upgradeHRPlan = asyncHandler(async (req, res, next) => {
 });
 
 module.exports = {
+  getAllCompanies,
   getHRProfile, updateHRProfile, postJob, getMyJobs,
   updateJob, getJobApplications, updateApplicationStatus, upgradeHRPlan,
   addHRExperience, deleteHRExperience,

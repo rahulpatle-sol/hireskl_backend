@@ -20,13 +20,13 @@
 			"com.tldraw.shape.group": 0,
 			"com.tldraw.shape.text": 4,
 			"com.tldraw.shape.bookmark": 2,
-			"com.tldraw.shape.draw": 4,
-			"com.tldraw.shape.geo": 11,
-			"com.tldraw.shape.note": 12,
+			"com.tldraw.shape.draw": 5,
+			"com.tldraw.shape.geo": 12,
+			"com.tldraw.shape.note": 13,
 			"com.tldraw.shape.line": 5,
 			"com.tldraw.shape.frame": 1,
 			"com.tldraw.shape.arrow": 8,
-			"com.tldraw.shape.highlight": 3,
+			"com.tldraw.shape.highlight": 4,
 			"com.tldraw.shape.embed": 4,
 			"com.tldraw.shape.image": 5,
 			"com.tldraw.shape.video": 4,
@@ -306,9 +306,9 @@
 			"typeName": "binding"
 		},
 		{
-			"x": 315.72176101199875,
-			"y": 857.5839203910712,
-			"z": 0.48245033754208466,
+			"x": 181.77006409850628,
+			"y": 1098.7272241985202,
+			"z": 0.5721991865700042,
 			"meta": {},
 			"id": "camera:page:page",
 			"typeName": "camera"
@@ -453,7 +453,9 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "aAyGQomV",
@@ -552,7 +554,9 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "a5t82JoV",
@@ -619,10 +623,7 @@
 		{
 			"followingUserId": null,
 			"opacityForNextShape": 1,
-			"stylesForNextShape": {
-				"tldraw:geo": "rectangle",
-				"tldraw:color": "light-red"
-			},
+			"stylesForNextShape": {},
 			"brush": null,
 			"scribbles": [],
 			"cursor": {
@@ -636,8 +637,8 @@
 			"screenBounds": {
 				"x": 0,
 				"y": 0,
-				"w": 991.6666259765625,
-				"h": 640.97216796875
+				"w": 741,
+				"h": 923
 			},
 			"insets": [
 				false,
@@ -652,7 +653,7 @@
 			"isChatting": false,
 			"highlightedUserIds": [],
 			"isFocused": true,
-			"devicePixelRatio": 1.440000057220459,
+			"devicePixelRatio": 1,
 			"isCoarsePointer": false,
 			"isHoveringCanvas": true,
 			"openMenus": [],
@@ -786,11 +787,21 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "a2RQsjvV",
 			"typeName": "shape"
+		},
+		{
+			"name": "",
+			"color": "#F04F88",
+			"imageUrl": "",
+			"meta": {},
+			"id": "user:hn2H8a3kOnP_UilJzyZBR",
+			"typeName": "user"
 		}
 	]
 }

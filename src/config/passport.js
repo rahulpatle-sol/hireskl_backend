@@ -9,7 +9,10 @@ const JWT_SECRET = process.env.JWT_SECRET || "fallback_test_secret_32_chars_min"
 passport.use(
   new JwtStrategy(
     {
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ExtractJwt.fromUrlQueryParameter("token"),
+      ]),
       secretOrKey: JWT_SECRET,
     },
     async (payload, done) => {
@@ -54,6 +57,18 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 isEmailVerified: true,
                 role,
               });
+
+              const CandidateProfile = require("../models/CandidateProfile.model");
+              const HRProfile = require("../models/HRProfile.model");
+              const MentorProfile = require("../models/MentorProfile.model");
+
+              if (role === "candidate") {
+                await CandidateProfile.create({ user: user._id, avatarUrl: user.avatar });
+              } else if (role === "hr") {
+                await HRProfile.create({ user: user._id, companyName: "Not set" });
+              } else if (role === "mentor") {
+                await MentorProfile.create({ user: user._id });
+              }
             }
           }
           return done(null, user);

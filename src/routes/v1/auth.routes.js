@@ -37,13 +37,16 @@ router.get("/me", protect, getMe);
 router.delete("/delete-account", protect, deleteAccount);
 
 // ── Google OAuth ──────────────────────────────────
-router.get(
-  "/google",
+router.get("/google", (req, res, next) => {
+  const role = ["candidate", "hr", "mentor"].includes(req.query.role)
+    ? req.query.role
+    : "candidate";
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
-  })
-);
+    state: role,
+  })(req, res, next);
+});
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false, failureRedirect: "/login" }),

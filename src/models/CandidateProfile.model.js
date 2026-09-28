@@ -113,6 +113,7 @@ const candidateProfileSchema = new mongoose.Schema(
     totalAssignmentsCompleted: { type: Number, default: 0 },
     streakDays:         { type: Number, default: 0 },
     streakCommits:      { type: Number, default: 0 },
+    lastActiveDate:     { type: Date },
 
     isProfilePublic: { type: Boolean, default: true },
   },

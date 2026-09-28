@@ -102,7 +102,7 @@ const register = asyncHandler(async (req, res, next) => {
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select("+password +refreshToken");
+  const user = await User.findOne({ email: email ? email.toLowerCase().trim() : "" }).select("+password +refreshToken");
   if (!user) return next(new ApiError(401, "Invalid email or password"));
 
   if (user.authProvider === "google") {

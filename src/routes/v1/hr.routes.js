@@ -1,12 +1,15 @@
 const router = require("express").Router();
 const { protect, authorizeRoles, isHRVerified } = require("../../middleware/auth.middleware");
 const {
-  getHRProfile, updateHRProfile, postJob,
+  getAllCompanies, getHRProfile, updateHRProfile, postJob,
   getMyJobs, updateJob, getJobApplications, updateApplicationStatus,
   addHRExperience, deleteHRExperience,
   addHREducation, deleteHREducation,
   addHRCertification, deleteHRCertification,
 } = require("../../controllers/hr/hr.controller");
+
+// Public — company directory
+router.get("/companies", getAllCompanies);
 
 router.use(protect, authorizeRoles("hr"));
 

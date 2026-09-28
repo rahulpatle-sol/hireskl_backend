@@ -19,6 +19,7 @@ async function seed() {
     const CandidateProfile = require("./src/models/CandidateProfile.model");
     const HRProfile = require("./src/models/HRProfile.model");
     const MentorProfile = require("./src/models/MentorProfile.model");
+    const ManagerProfile = require("./src/models/ManagerProfile.model");
     const { Domain } = require("./src/models/Domain.model"); // For Manager
 
     // Let the User model pre-save hook hash this!
@@ -29,7 +30,7 @@ async function seed() {
     console.log("👑 Master Admin created — master@test.com");
 
     // ── 2. Standard Admin ────────────────────────────────────
-    await User.create({ name: "System Admin Aditi", email: "admin@test.com", role: "admin", ...baseUser });
+    const adminUser = await User.create({ name: "System Admin Aditi", email: "admin@test.com", role: "admin", ...baseUser });
     console.log("🛠️  Admin created — admin@test.com");
 
     // ── 3. Domain & Manager ──────────────────────────────────
@@ -38,10 +39,17 @@ async function seed() {
       slug: "software-engineering",
       description: "Code and architecture."
     });
-    await User.create({
-      name: "Domain Manager Rahul", email: "manager@test.com", role: "manager", domain: domain._id, ...baseUser
+    const mgrUser = await User.create({
+      name: "Domain Manager Rahul", email: "manager@test.com", role: "manager", ...baseUser
     });
-    console.log("🗂️  Manager created (assigned to Software Engineering domain) — manager@test.com");
+    await ManagerProfile.create({
+      user: mgrUser._id,
+      createdBy: adminUser._id,
+      domains: [domain._id],
+      title: "Software Engineering Domain Lead",
+      bio: "Overseeing candidate assessments and technical assignments.",
+    });
+    console.log("🗂️  Manager & ManagerProfile created (assigned to Software Engineering domain) — manager@test.com");
 
     // ── 4. HR / Recruiter ────────────────────────────────────
     const hrUser = await User.create({ name: "Priya HR Recruiter", email: "hr@test.com", role: "hr", ...baseUser });

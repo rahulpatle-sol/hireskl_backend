@@ -155,6 +155,14 @@ const updateDomain = asyncHandler(async (req, res, next) => {
   res.json(new ApiResponse(200, { domain }, "Domain updated"));
 });
 
+// @route DELETE /api/v1/admin/domains/:id
+const deleteDomain = asyncHandler(async (req, res, next) => {
+  const domain = await Domain.findByIdAndDelete(req.params.id);
+  if (!domain) return next(new ApiError(404, "Domain not found"));
+  await Skill.deleteMany({ domain: req.params.id });
+  res.json(new ApiResponse(200, null, "Domain and associated skills deleted"));
+});
+
 // ── Skills ────────────────────────────────────────
 // @route POST /api/v1/admin/skills
 const createSkill = asyncHandler(async (req, res, next) => {
@@ -171,6 +179,13 @@ const getSkills = asyncHandler(async (req, res) => {
   if (domain) filter.domain = domain;
   const skills = await Skill.find(filter).populate("domain", "name").sort("name");
   res.json(new ApiResponse(200, { skills }));
+});
+
+// @route DELETE /api/v1/admin/skills/:id
+const deleteSkill = asyncHandler(async (req, res, next) => {
+  const skill = await Skill.findByIdAndDelete(req.params.id);
+  if (!skill) return next(new ApiError(404, "Skill not found"));
+  res.json(new ApiResponse(200, null, "Skill deleted successfully"));
 });
 
 // ── Assessments ───────────────────────────────────
@@ -433,8 +448,10 @@ module.exports = {
   createDomain,
   getDomains,
   updateDomain,
+  deleteDomain,
   createSkill,
   getSkills,
+  deleteSkill,
   createAssessment,
   getAssessments,
   getAllUsers,

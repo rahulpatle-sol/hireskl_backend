@@ -15,6 +15,28 @@ const getMyProfile = asyncHandler(async (req, res, next) => {
     .populate("skills", "name slug domain");
 
   if (!profile) return next(new ApiError(404, "Profile not found"));
+
+  // Track daily login streak
+  const now = new Date();
+  if (!profile.lastActiveDate) {
+    profile.streakDays = 1;
+    profile.lastActiveDate = now;
+    await profile.save();
+  } else {
+    const lastActive = new Date(profile.lastActiveDate);
+    const isSameDay = now.toDateString() === lastActive.toDateString();
+    if (!isSameDay) {
+      const diffDays = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        profile.streakDays = (profile.streakDays || 0) + 1;
+      } else {
+        profile.streakDays = 1;
+      }
+      profile.lastActiveDate = now;
+      await profile.save();
+    }
+  }
+
   res.json(new ApiResponse(200, { profile }));
 });
 
@@ -24,7 +46,7 @@ const getMyProfile = asyncHandler(async (req, res, next) => {
 const updateProfile = asyncHandler(async (req, res, next) => {
   const {
     headline, bio, location, phone,
-    education, experience, socialLinks,
+    education, experience, certifications, socialLinks,
     avatarUrl, resumeUrl,
   } = req.body;
 
@@ -37,6 +59,7 @@ const updateProfile = asyncHandler(async (req, res, next) => {
   if (phone !== undefined) profile.phone = phone;
   if (education !== undefined) profile.education = education;
   if (experience !== undefined) profile.experience = experience;
+  if (certifications !== undefined) profile.certifications = certifications;
   if (socialLinks !== undefined) profile.socialLinks = socialLinks;
   if (avatarUrl !== undefined) profile.avatarUrl = avatarUrl;
   if (resumeUrl !== undefined) profile.resumeUrl = resumeUrl;
@@ -169,23 +192,23 @@ const getScorecard = asyncHandler(async (req, res, next) => {
   res.json(new ApiResponse(200, { scorecard }));
 });
 
-// Helper: calculate profile completeness %
+// Helper: calculate profile completeness % (10 fields * 10% each = 100%)
 const calculateCompleteness = (profile) => {
   let score = 0;
   const fields = [
-    profile.headline,
-    profile.bio,
-    profile.location,
-    profile.phone,
-    profile.skills?.length > 0,
-    profile.domains?.length > 0,
-    profile.education?.length > 0,
-    profile.socialLinks?.linkedin,
-    profile.resumeUrl,
-    profile.capstoneProject?.status !== "not_submitted",
+    Boolean(profile.headline && profile.headline.trim()),
+    Boolean(profile.bio && profile.bio.trim()),
+    Boolean((profile.location && profile.location.trim()) || (profile.phone && profile.phone.trim())),
+    Boolean(profile.skills && profile.skills.length > 0),
+    Boolean(profile.domains && profile.domains.length > 0),
+    Boolean(profile.education && profile.education.length > 0),
+    Boolean(profile.experience && profile.experience.length > 0),
+    Boolean(profile.certifications && profile.certifications.length > 0),
+    Boolean(profile.socialLinks && (profile.socialLinks.linkedin || profile.socialLinks.github || profile.socialLinks.portfolio)),
+    Boolean(profile.resumeUrl || profile.avatarUrl || (profile.capstoneProject && profile.capstoneProject.status !== "not_submitted")),
   ];
   fields.forEach((f) => { if (f) score += 10; });
-  return score;
+  return Math.min(score, 100);
 };
 
 // @desc    Get mentor sessions
@@ -211,28 +234,43 @@ const getMySessions = asyncHandler(async (req, res, next) => {
 // @desc    List all candidates (public — for mentor chat search)
 // @route   GET /api/v1/candidate
 // @access  Public
+const SORTS = {
+  recent: { createdAt: -1 },
+  score: { overallScore: -1 },
+  assessments: { totalAssessmentsPassed: -1 },
+};
+
 const getAllCandidates = asyncHandler(async (req, res) => {
-  const { search, page = 1, limit = 20 } = req.query;
+  const {
+    search, skill, domain, location,
+    verified, sort = "recent",
+    page = 1, limit = 20,
+  } = req.query;
   const filter = {};
 
+  if (verified === "true") filter.isVerified = true;
+  if (skill) filter.skills = skill;
+  if (domain) filter.domains = domain;
+  if (location && location !== "All") {
+    filter.location = { $regex: location.trim(), $options: "i" };
+  }
+
   // If search query, find matching User IDs first
-  let userIds = null;
   if (search && search.trim()) {
     const matchingUsers = await User.find({
       role: "candidate",
       name: { $regex: search.trim(), $options: "i" },
     }).select("_id").lean();
-    userIds = matchingUsers.map((u) => u._id);
-    filter.user = { $in: userIds };
+    filter.user = { $in: matchingUsers.map((u) => u._id) };
   }
 
   const skip = (page - 1) * limit;
   const [candidates, total] = await Promise.all([
     CandidateProfile.find(filter)
-      .populate("user", "name avatar email")
-      .populate("skills", "name")
-      .populate("domains", "name")
-      .sort("-createdAt")
+      .populate("user", "name avatar email isVerified")
+      .populate("skills", "name slug")
+      .populate("domains", "name slug")
+      .sort(SORTS[sort] || SORTS.recent)
       .skip(skip)
       .limit(Number(limit)),
     CandidateProfile.countDocuments(filter),
