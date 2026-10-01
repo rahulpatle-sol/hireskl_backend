@@ -268,6 +268,35 @@ const getMe = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, { user: req.user }, "User fetched"));
 });
 
+// @desc    Update current user (name + avatar only)
+// @route   PUT /api/v1/auth/me
+// @access  Private (all roles — used by internal ops console for profile pic)
+const updateMe = asyncHandler(async (req, res, next) => {
+  const { name, avatar } = req.body;
+
+  const updates = {};
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim() || name.trim().length > 100) {
+      return next(new ApiError(400, "Name must be 1–100 characters"));
+    }
+    updates.name = name.trim();
+  }
+  if (avatar !== undefined) {
+    if (typeof avatar !== "string" || avatar.length > 2000) {
+      return next(new ApiError(400, "Invalid avatar URL"));
+    }
+    updates.avatar = avatar;
+  }
+  if (Object.keys(updates).length === 0) {
+    return next(new ApiError(400, "Nothing to update (send name and/or avatar)"));
+  }
+
+  const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true });
+  if (!user) return next(new ApiError(404, "User not found"));
+
+  res.json(new ApiResponse(200, { user }, "Profile updated"));
+});
+
 // @desc    Request Account Soft Deletion (24-Hour Purge Limbo)
 // @route   DELETE /api/v1/auth/delete-account
 // @access  Private
@@ -292,5 +321,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   getMe,
+  updateMe,
   deleteAccount,
 };
