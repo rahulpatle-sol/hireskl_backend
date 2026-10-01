@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const multer = require("multer");
 const { protect } = require("../../middleware/auth.middleware");
-const { uploadToCloudinary } = require("../../services/cloudinary.service");
+const { uploadToCloudinary, isCloudinaryConfigured } = require("../../services/cloudinary.service");
 const ApiResponse = require("../../utils/ApiResponse");
 const ApiError = require("../../utils/ApiError");
 
@@ -15,6 +15,9 @@ router.post("/", protect, upload.single("file"), async (req, res, next) => {
   try {
     if (!req.file) {
       return next(new ApiError(400, "No file provided"));
+    }
+    if (!isCloudinaryConfigured()) {
+      return next(new ApiError(503, "File uploads are disabled on this server (Cloudinary not configured)"));
     }
     const result = await uploadToCloudinary(req.file.buffer, "skill1-hire-assets");
     res.status(200).json(new ApiResponse(200, { 
