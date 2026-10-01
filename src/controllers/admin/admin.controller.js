@@ -441,10 +441,82 @@ const getAllSessions = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, { sessions }, "Sessions fetched"));
 });
 
+// ── Admin Management (MASTER ONLY) ────────────────
+// Chain of command: master creates/manages admins; admins manage managers.
+// @route POST /api/v1/admin/admins
+const createAdmin = asyncHandler(async (req, res, next) => {
+  const { userId, name, email, password } = req.body;
+
+  // Option 1: promote an existing user
+  if (userId) {
+    const target = await User.findById(userId);
+    if (!target) return next(new ApiError(404, "User not found"));
+    if (target.role === "master") return next(new ApiError(403, "Cannot change a master account"));
+    if (target.role === "admin") return next(new ApiError(409, "User is already an admin"));
+
+    target.role = "admin";
+    target.isVerified = true;
+    target.verifiedAt = new Date();
+    target.verifiedBy = req.user._id;
+    await target.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new ApiResponse(200, { admin: target }, "User promoted to admin"));
+  }
+
+  // Option 2: create a fresh admin account
+  if (!name || !email || !password) {
+    return next(new ApiError(400, "Provide userId to promote, OR name+email+password to create"));
+  }
+  const existing = await User.findOne({ email: email.toLowerCase().trim() });
+  if (existing) return next(new ApiError(409, "Email already registered — promote via userId instead"));
+
+  const admin = await User.create({
+    name: name.trim(),
+    email: email.toLowerCase().trim(),
+    password,
+    role: "admin",
+    isEmailVerified: true,
+    isVerified: true,
+    verifiedAt: new Date(),
+    verifiedBy: req.user._id,
+  });
+
+  res.status(201).json(new ApiResponse(201, { admin }, "Admin created successfully"));
+});
+
+// @route GET /api/v1/admin/admins
+const listAdmins = asyncHandler(async (req, res) => {
+  const admins = await User.find({ role: { $in: ["admin", "master"] } })
+    .select("_id name email avatar role isActive isVerified lastLogin createdAt")
+    .sort("-createdAt");
+
+  res.json(new ApiResponse(200, { admins, total: admins.length }));
+});
+
+// @route DELETE /api/v1/admin/admins/:id  (demote admin → candidate)
+// @access Private (master only)
+const demoteAdmin = asyncHandler(async (req, res, next) => {
+  if (req.params.id === req.user._id.toString()) {
+    return next(new ApiError(403, "You cannot demote yourself"));
+  }
+  const target = await User.findById(req.params.id);
+  if (!target) return next(new ApiError(404, "User not found"));
+  if (target.role === "master") return next(new ApiError(403, "Cannot demote a master account"));
+  if (target.role !== "admin") return next(new ApiError(400, "User is not an admin"));
+
+  target.role = "candidate";
+  await target.save({ validateBeforeSave: false });
+
+  res.json(new ApiResponse(200, {}, "Admin demoted to candidate"));
+});
+
 module.exports = {
   getDashboard,
   verifyUser,
   getPendingVerifications,
+  createAdmin,
+  listAdmins,
+  demoteAdmin,
   createDomain,
   getDomains,
   updateDomain,

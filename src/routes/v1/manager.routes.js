@@ -14,21 +14,22 @@ const {
   getMyProfile,
 } = require("../../controllers/manager/manager.controller");
 
-// ── Admin-only routes ─────────────────────────────
-router.post("/create", protect, authorizeRoles("admin", "master"), createManager);
-router.get("/", protect, authorizeRoles("admin", "master"), listManagers);
-router.put("/:id", protect, authorizeRoles("admin", "master"), updateManager);
-router.delete("/:id", protect, authorizeRoles("admin", "master"), deleteManager);
+// ── Admin-only routes (chain of command: ONLY admin manages managers;
+// master manages admins, never managers directly) ──
+router.post("/create", protect, authorizeRoles("admin"), createManager);
+router.get("/", protect, authorizeRoles("admin"), listManagers);
+router.put("/:id", protect, authorizeRoles("admin"), updateManager);
+router.delete("/:id", protect, authorizeRoles("admin"), deleteManager);
 
 // ── Manager self-service routes ───────────────────
-router.get("/me", protect, authorizeRoles("manager", "master"), getMyProfile);
-router.get("/my/candidates", protect, authorizeRoles("manager", "master"), getMyCandidates);
-router.get("/my/assignments", protect, authorizeRoles("manager", "master"), getMyAssignments);
-router.post("/assignment", protect, authorizeRoles("manager", "master"), createAssignment);
-router.put("/assignment/:id/score", protect, authorizeRoles("manager", "master"), scoreAssignment);
+router.get("/me", protect, authorizeRoles("manager"), getMyProfile);
+router.get("/my/candidates", protect, authorizeRoles("manager"), getMyCandidates);
+router.get("/my/assignments", protect, authorizeRoles("manager"), getMyAssignments);
+router.post("/assignment", protect, authorizeRoles("manager"), createAssignment);
+router.put("/assignment/:id/score", protect, authorizeRoles("manager"), scoreAssignment);
 
 // This must come AFTER /me and /my/* to avoid conflict
-router.get("/:id", protect, authorizeRoles("admin", "master"), getManager);
+router.get("/:id", protect, authorizeRoles("admin"), getManager);
 
 module.exports = router;
 

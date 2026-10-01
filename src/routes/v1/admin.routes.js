@@ -8,7 +8,8 @@ const {
   getAllUsers, toggleUserActive,
   adminPostJob, assignAssessment, removeAssignedAssessments, upgradeHRPlan,
   getUserFullProfile, getUserAssessmentResults, updateCapstoneStatus,
-  getAnalytics, getCapstones, getAllSessions
+  getAnalytics, getCapstones, getAllSessions,
+  createAdmin, listAdmins, demoteAdmin
 } = require("../../controllers/admin/admin.controller");
 
 // ── All admin routes protected ────────────────────
@@ -38,5 +39,10 @@ router.delete("/assign-assessment/:candidateId", removeAssignedAssessments);
 router.put("/hr-plan/:userId", upgradeHRPlan);
 router.post("/jobs", adminPostJob);
 router.get("/sessions", getAllSessions);
+
+// ── Admin management — MASTER ONLY (chain of command: master → admins → managers)
+router.get("/admins", authorizeRoles("master"), listAdmins);
+router.post("/admins", authorizeRoles("master"), createAdmin);
+router.delete("/admins/:id", authorizeRoles("master"), demoteAdmin);
 
 module.exports = router;
